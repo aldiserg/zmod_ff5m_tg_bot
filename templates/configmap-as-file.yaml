@@ -1,0 +1,16 @@
+{{ if .Values.configMapAsFile.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-as-file
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+  annotations: {}
+data:
+  {{- range $k, $v := .Values.configMapAsFile.data }}
+  {{ tpl $k $ }}: {{ $v | toYaml | nindent 2 }}
+  {{- end }}
+{{- end }}

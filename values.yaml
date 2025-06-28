@@ -1,0 +1,124 @@
+name: ff5-tg-bot
+env: dev
+
+imagePullSecrets: {}
+strategy:
+  type: Recreate
+
+serviceAccount: 
+  create: false
+  # name: namespace
+
+deployments:
+  moonraker-telegram-bot:
+    configMapAsFile: true
+    persistence: true
+    containers:
+      moonraker-telegram-bot:
+        command: [ "python3", "moonraker-telegram-bot/bot/main.py", "-c", "/opt/printer_data/config/telegram.conf", "-l", "/opt/printer_data/logs" ]
+        imagePullSecrets: {}
+        image:
+          pullPolicy: Always
+          repository: "lefskiy/moonraker-telegram-bot"
+          tag: "latest"
+
+        resources:
+          requests:
+            memory: 300M
+            cpu: 200m
+          limits:
+            memory: 300M
+            cpu: 200m
+
+        persistence:
+          enabled: true
+          volumes:
+            data:
+              mountPath: /home/moonraker-telegram-bot/moonraker-telegram-bot-timelapse
+            data-finished:
+              mountPath: /home/moonraker-telegram-bot/timelapse_finished
+            logs:
+              mountPath: /opt/printer_data/logs
+
+      cron:
+        command: [ "/bin/sh", "-c", "while sleep 600; do find /home/moonraker-telegram-bot/ -type f -mtime +10 -delete; done" ]
+        imagePullSecrets: {}
+        image:
+          pullPolicy: Always
+          repository: alpine
+          tag: latest
+
+        resources:
+          requests:
+            memory: 150M
+            cpu: 50m
+          limits:
+            memory: 150M
+            cpu: 100m
+
+        extraEnv: |
+          - name: TZ
+            value: Europe/Moscow
+
+        persistence:
+          enabled: true
+          volumes:
+            data:
+              mountPath: /home/moonraker-telegram-bot/moonraker-telegram-bot-timelapse
+            data-finished:
+              mountPath: /home/moonraker-telegram-bot/timelapse_finished
+
+persistence:
+  enabled: true
+  volumes:
+    data:
+      storageClass: nfs
+      mountPath: /home/moonraker-telegram-bot/moonraker-telegram-bot-timelapse
+      size: 100Gi
+    data-finished:
+      storageClass: nfs
+      mountPath: /home/moonraker-telegram-bot/timelapse_finished
+      size: 100Gi
+    logs:
+      storageClass: nfs
+      mountPath: /opt/printer_data/logs
+      size: 100Gi
+
+configMapAsFile:
+  enabled: true
+  mountPath: /opt/printer_data/config/telegram.conf
+  data:
+    telegram.conf: |
+      [bot]
+      server: 3D_printer_host:7125
+      bot_token: 1111111111:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      chat_id: 111111111
+
+      [camera]
+      host: http://3D_printer_host:8080/?action=stream
+      host_snapshot: http://3D_printer_host:8080/?action=snapshot
+      type: mjpeg
+      fps: 15
+      threads: 1
+
+      [progress_notification]
+      percent: 5
+      height: 0.0
+      time: 0
+
+      [status_message_content]
+      heaters: extruder, heater_bed
+      content: progress, height, filament_length, filament_weight, print_duration, eta, finish_time, m117_status, tgnotify_status, last_update_time
+      fans: fanM106
+
+      [telegram_ui]
+      buttons: [status,pause,cancel,resume],[files,emergency,macros,bot_restart,reboot]
+      include_macros_in_command_list: true
+      hidden_macros: check_md5, stop, g17, g18m g19, kamp, m106, m107, m300, m356, m357, m900, bed_mesh_calibrate, start_print, end_print
+
+      [timelapse]
+      copy_finished_timelapse_dir: /home/moonraker-telegram-bot/timelapse_finished
+      cleanup: true
+      height: 0.2
+      target_fps: 15
+      send_finished_lapse: true

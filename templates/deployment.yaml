@@ -1,0 +1,89 @@
+{{ if .Values.deployments }}
+{{- $outer := . -}}
+{{- range $k, $v := .Values.deployments }}
+{{- with $outer }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $k }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/name: {{ .Release.Name }}
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: {{ .Values.strategy.type }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/name: {{ .Release.Name }}  
+    spec:
+{{- if .Values.securityContext }}
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}
+{{- end }}
+      containers:
+{{- range $con, $val := $v.containers }}
+{{ with $outer }}
+      - name: {{ $con }}
+        image: {{ $val.image.repository }}:{{ tpl $val.image.tag $ }}
+        imagePullPolicy: {{ $val.image.pullPolicy }}
+        resources:
+{{- if kindIs "string" $val.resources }}
+{{- tpl $val.resources . | indent 10 }}
+{{- else -}}
+{{ tpl (toYaml $val.resources) . | nindent 10 }}
+{{- end }}
+        command:
+{{ toYaml $val.command | indent 8 }}
+{{- if $val.extraEnv }}
+        env: 
+{{ tpl $val.extraEnv . | indent 8 }}
+{{- end }}
+        volumeMounts:
+{{ if $v.configMapAsFile }}
+          - name: file
+            readOnly: true
+            mountPath: {{ .Values.configMapAsFile.mountPath }}
+            subPath: {{ splitList "/" .Values.configMapAsFile.mountPath | last }}
+{{- end }}
+{{ if $v.persistence }}
+{{- range $k, $v := $val.persistence.volumes }}
+          - mountPath: {{ $v.mountPath | quote }}
+            name: {{ $k }}
+            subPath: {{ splitList "/" $v.mountPath | last }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+      volumes:
+{{ if $v.configMapAsFile }}
+        - name: file
+          configMap:
+            name: {{ .Values.name }}-as-file
+            defaultMode: 420
+{{- end }}
+{{ if $v.persistence }}
+  {{- $outer := . -}}
+  {{- range $k, $v := .Values.persistence.volumes }}
+  {{- with $outer }}
+        - name: {{ $k }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-{{ $k }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

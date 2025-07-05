@@ -30,6 +30,10 @@ deployments:
             memory: 300M
             cpu: 200m
 
+        extraEnv: |
+          - name: TZ
+            value: Europe/Moscow
+
         persistence:
           enabled: true
           volumes:
@@ -55,10 +59,6 @@ deployments:
           limits:
             memory: 150M
             cpu: 100m
-
-        extraEnv: |
-          - name: TZ
-            value: Europe/Moscow
 
         persistence:
           enabled: true

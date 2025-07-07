@@ -1,5 +1,4 @@
 name: ff5-tg-bot
-env: dev
 
 imagePullSecrets: {}
 strategy:
@@ -65,7 +64,7 @@ deployments:
               mountPath: /home/moonraker-telegram-bot/timelapse_finished
 
 persistence:
-  enabled: true
+  enabled: false
   volumes:
     data:
       storageClass: nfs

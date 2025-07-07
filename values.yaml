@@ -56,7 +56,7 @@ deployments:
             cpu: 100m
 
         persistence:
-          enabled: true
+          enabled: false
           volumes:
             data:
               mountPath: /home/moonraker-telegram-bot/moonraker-telegram-bot-timelapse

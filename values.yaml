@@ -7,7 +7,7 @@ strategy:
 deployments:
   moonraker-telegram-bot:
     configMapAsFile: true
-    persistence: true
+    persistence: false
     containers:
       moonraker-telegram-bot:
         command: [ "python3", "moonraker-telegram-bot/bot/main.py", "-c", "/opt/printer_data/config/telegram.conf", "-l", "/opt/printer_data/logs" ]
@@ -30,7 +30,7 @@ deployments:
             value: Europe/Moscow
 
         persistence:
-          enabled: true
+          enabled: false
           volumes:
             data:
               mountPath: /home/moonraker-telegram-bot/moonraker-telegram-bot-timelapse

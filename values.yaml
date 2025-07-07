@@ -5,10 +5,6 @@ imagePullSecrets: {}
 strategy:
   type: Recreate
 
-serviceAccount: 
-  create: false
-  # name: namespace
-
 deployments:
   moonraker-telegram-bot:
     configMapAsFile: true
